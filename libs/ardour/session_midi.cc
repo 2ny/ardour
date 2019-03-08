@@ -764,8 +764,20 @@ Session::rewire_selected_midi (boost::shared_ptr<MidiTrack> new_midi_target)
 		}
 
 		for (vector<string>::const_iterator p = msp.begin(); p != msp.end(); ++p) {
-			/* disconnect the port from everything */
-			AudioEngine::instance()->disconnect (*p);
+      /* backport commits f1dfc6d and 8b212bf*/
+      PortManager::MidiPortInformation mpi (AudioEngine::instance()->midi_port_information (*p));
+
+			/* if a port is marked for control data, do not
+			 * disconnect it from everything since it may also be
+			 * used via a control surface or some other
+			 * functionality.
+			 */
+
+			if (!(mpi.properties & MidiPortControl)) {
+				/* disconnect the port from everything */
+				AudioEngine::instance()->disconnect (*p);
+			}
+
 			/* connect it to the new target */
 			new_midi_target->input()->connect (new_midi_target->input()->nth(0), (*p), this);
 		}
